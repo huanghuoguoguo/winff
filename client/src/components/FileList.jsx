@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     Folder, FileText, Film, Image, Music, File, ChevronRight,
-    ArrowLeft, Download, Eye, LayoutGrid, List, Search, X
+    ArrowLeft, Download, Eye, LayoutGrid, List, Search, X,
+    Check, CheckSquare, Square, Trash2, Archive
 } from 'lucide-react';
 import { fetchFiles, getStreamUrl, getDownloadUrl } from '../api';
 
@@ -35,6 +36,9 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
     const [visibleCount, setVisibleCount] = useState(100);
     const [hasMore, setHasMore] = useState(false);
     const listContainerRef = useRef(null);
+    // 批量操作
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState(new Set());
 
     useEffect(() => {
         localStorage.setItem('winff-view-mode', viewMode);
@@ -99,6 +103,63 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
         return () => container.removeEventListener('scroll', handleScroll);
     }, [hasMoreFiles, filteredFiles.length]);
 
+    // 切换目录时清空选择
+    useEffect(() => {
+        setSelectedFiles(new Set());
+        setSelectMode(false);
+    }, [currentPath]);
+
+    // 切换选择模式
+    const toggleSelectMode = () => {
+        setSelectMode(!selectMode);
+        setSelectedFiles(new Set());
+    };
+
+    // 切换文件选择状态
+    const toggleFileSelect = (path) => {
+        setSelectedFiles(prev => {
+            const next = new Set(prev);
+            if (next.has(path)) {
+                next.delete(path);
+            } else {
+                next.add(path);
+            }
+            return next;
+        });
+    };
+
+    // 全选/取消全选
+    const toggleSelectAll = () => {
+        if (selectedFiles.size === visibleFiles.length) {
+            setSelectedFiles(new Set());
+        } else {
+            setSelectedFiles(new Set(visibleFiles.map(f => f.path)));
+        }
+    };
+
+    // 批量删除
+    const handleBatchDelete = () => {
+        if (selectedFiles.size === 0) return;
+        if (!confirm(`确定要删除选中的 ${selectedFiles.size} 个文件/目录吗？`)) return;
+        // TODO: 调用删除 API
+        console.log('删除:', Array.from(selectedFiles));
+        // 删除后刷新
+        loadFiles(currentPath === '/' ? '' : currentPath);
+        setSelectMode(false);
+        setSelectedFiles(new Set());
+    };
+
+    // 批量下载
+    const handleBatchDownload = () => {
+        if (selectedFiles.size === 0) return;
+        // TODO: 调用批量下载 API（打包 ZIP）
+        console.log('下载:', Array.from(selectedFiles));
+        // 临时方案：逐个下载
+        visibleFiles.filter(f => selectedFiles.has(f.path)).forEach(f => {
+            window.open(getDownloadUrl(f.path), '_blank');
+        });
+    };
+
     useEffect(() => {
         loadFiles();
     }, []);
@@ -156,23 +217,63 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                         )}
                     </div>
 
-                    {/* 视图切换 */}
-                    <div className="flex items-center gap-1 bg-[var(--color-surface-hover)] p-1 rounded-lg shrink-0">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
-                            title="列表视图"
-                        >
-                            <List size={16} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
-                            title="大图标视图"
-                        >
-                            <LayoutGrid size={16} />
-                        </button>
-                    </div>
+                    {/* 视图切换和批量操作 */}
+                    {selectMode ? (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={toggleSelectAll}
+                                className="px-3 py-2 rounded-lg bg-[var(--color-primary)]/20 text-[var(--color-primary)] text-sm font-medium"
+                            >
+                                {selectedFiles.size === visibleFiles.length ? '取消全选' : '全选'}
+                            </button>
+                            <button
+                                onClick={handleBatchDownload}
+                                disabled={selectedFiles.size === 0}
+                                className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50 cursor-pointer"
+                                title="批量下载"
+                            >
+                                <Archive size={18} className="text-[var(--color-text)]" />
+                            </button>
+                            <button
+                                onClick={handleBatchDelete}
+                                disabled={selectedFiles.size === 0}
+                                className="p-2 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                                title="批量删除"
+                            >
+                                <Trash2 size={18} className="text-red-400" />
+                            </button>
+                            <button
+                                onClick={toggleSelectMode}
+                                className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
+                            >
+                                <X size={18} className="text-[var(--color-text-muted)]" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1 bg-[var(--color-surface-hover)] p-1 rounded-lg shrink-0">
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
+                                title="列表视图"
+                            >
+                                <List size={16} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
+                                title="大图标视图"
+                            >
+                                <LayoutGrid size={16} />
+                            </button>
+                            <button
+                                onClick={toggleSelectMode}
+                                className="p-1.5 rounded-md transition-colors cursor-pointer text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent"
+                                title="批量操作"
+                            >
+                                <Square size={16} />
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* 路径导航 */}
@@ -237,13 +338,30 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                                 : (categoryColors[item.category] || 'text-slate-400');
 
                             if (viewMode === 'grid') {
+                                const isSelected = selectedFiles.has(item.path);
                                 return (
                                     <div
                                         key={item.path}
-                                        className="flex flex-col items-center gap-2 p-3 rounded-2xl border border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:shadow-md transition-all cursor-pointer group animate-fade-in relative text-center"
+                                        className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer group animate-fade-in relative text-center ${isSelected ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:shadow-md'}`}
                                         style={{ animationDelay: `${index * 20}ms` }}
-                                        onClick={() => handleItemClick(item)}
+                                        onClick={() => {
+                                            if (selectMode) {
+                                                toggleFileSelect(item.path);
+                                            } else {
+                                                handleItemClick(item);
+                                            }
+                                        }}
                                     >
+                                        {/* 选择框 */}
+                                        {selectMode && (
+                                            <div className="absolute top-2 right-2 z-10">
+                                                {isSelected ? (
+                                                    <CheckSquare size={20} className="text-[var(--color-primary)]" />
+                                                ) : (
+                                                    <Square size={20} className="text-[var(--color-text-muted)]" />
+                                                )}
+                                            </div>
+                                        )}
                                         <div className={`w-20 h-20 flex items-center justify-center rounded-xl overflow-hidden ${item.category === 'image' ? 'shadow-sm border border-[var(--color-border)] bg-[var(--color-surface)]/50' : iconColor}`}>
                                             {item.category === 'image' ? (
                                                 <img
@@ -289,13 +407,30 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                                 );
                             }
 
+                            const isSelected = selectedFiles.has(item.path);
                             return (
                                 <div
                                     key={item.path}
-                                    className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-surface-hover)] transition-all cursor-pointer animate-fade-in group"
+                                    className={`flex items-center gap-3 px-4 py-3 transition-all cursor-pointer animate-fade-in group ${isSelected ? 'bg-[var(--color-primary)]/10' : 'hover:bg-[var(--color-surface-hover)]'}`}
                                     style={{ animationDelay: `${index * 30}ms` }}
-                                    onClick={() => handleItemClick(item)}
+                                    onClick={() => {
+                                        if (selectMode) {
+                                            toggleFileSelect(item.path);
+                                        } else {
+                                            handleItemClick(item);
+                                        }
+                                    }}
                                 >
+                                    {/* 选择框 */}
+                                    {selectMode && (
+                                        <div className="shrink-0">
+                                            {isSelected ? (
+                                                <CheckSquare size={20} className="text-[var(--color-primary)]" />
+                                            ) : (
+                                                <Square size={20} className="text-[var(--color-text-muted)]" />
+                                            )}
+                                        </div>
+                                    )}
                                     {/* 缩略图或图标 */}
                                     <div className={`shrink-0 flex items-center justify-center ${item.category === 'image' ? '' : iconColor} ${item.category === 'image' ? 'w-10 h-10' : 'w-10 h-10'}`}>
                                         {item.category === 'image' ? (
