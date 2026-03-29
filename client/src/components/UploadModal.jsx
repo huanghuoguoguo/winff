@@ -10,7 +10,9 @@ export default function UploadModal({ onClose, initialFiles }) {
     const [remainingTime, setRemainingTime] = useState(null);
     const [result, setResult] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+    const [isFolderUpload, setIsFolderUpload] = useState(false);
     const inputRef = useRef(null);
+    const folderInputRef = useRef(null);
     const uploadTaskRef = useRef(null);
 
     // 格式化速度
@@ -47,9 +49,26 @@ export default function UploadModal({ onClose, initialFiles }) {
         }
     }, [progress, uploadSpeed, uploading]);
 
-    const handleFiles = (files) => {
+    const handleFiles = (files, isFolder = false) => {
         setSelectedFiles(Array.from(files));
+        setIsFolderUpload(isFolder);
         setResult(null);
+    };
+
+    // 按目录结构分组文件
+    const groupFilesByDirectory = (files) => {
+        const dirMap = new Map();
+        for (const file of files) {
+            if (file.webkitRelativePath) {
+                const parts = file.webkitRelativePath.split('/');
+                const dir = parts.slice(0, -1).join('/');
+                if (!dirMap.has(dir)) {
+                    dirMap.set(dir, []);
+                }
+                dirMap.get(dir).push(file);
+            }
+        }
+        return dirMap;
     };
 
     const handleDrop = (e) => {
@@ -69,14 +88,39 @@ export default function UploadModal({ onClose, initialFiles }) {
         setResult(null);
 
         try {
-            const task = uploadFiles(selectedFiles, '', (data) => {
-                setProgress(data.percent);
-                setUploadSpeed(data.speed);
-            });
-            uploadTaskRef.current = task;
+            // 如果是文件夹上传，按目录结构分别上传
+            if (isFolderUpload && selectedFiles[0].webkitRelativePath) {
+                const dirMap = groupFilesByDirectory(selectedFiles);
+                const totalDirs = dirMap.size;
+                let completedDirs = 0;
+                let totalProgress = 0;
 
-            const res = await task.promise;
-            setResult({ success: true, message: res.message });
+                for (const [dir, files] of dirMap) {
+                    const task = uploadFiles(files, dir, (data) => {
+                        // 计算总体进度
+                        const dirProgress = data.percent / 100;
+                        const weight = 1 / totalDirs;
+                        totalProgress += dirProgress * weight;
+                        setProgress(Math.min(100, Math.round(totalProgress * 100)));
+                        setUploadSpeed(data.speed);
+                    });
+                    uploadTaskRef.current = task;
+                    await task.promise;
+                    completedDirs++;
+                }
+
+                setResult({ success: true, message: `成功上传 ${completedDirs} 个目录` });
+            } else {
+                const task = uploadFiles(selectedFiles, '', (data) => {
+                    setProgress(data.percent);
+                    setUploadSpeed(data.speed);
+                });
+                uploadTaskRef.current = task;
+
+                const res = await task.promise;
+                setResult({ success: true, message: res.message });
+            }
+
             setSelectedFiles([]);
             // 通知文件列表刷新
             if (window.__winff_refreshFiles) {
@@ -131,9 +175,8 @@ export default function UploadModal({ onClose, initialFiles }) {
                         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                         onDragLeave={() => setDragOver(false)}
                         onDrop={handleDrop}
-                        onClick={() => inputRef.current?.click()}
                         className={`
-              border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all
+              border-2 border-dashed rounded-xl p-8 text-center transition-all mb-4
               ${dragOver
                                 ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
                                 : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
@@ -142,29 +185,68 @@ export default function UploadModal({ onClose, initialFiles }) {
                     >
                         <FileUp size={40} className="mx-auto mb-3 text-[var(--color-text-muted)]" />
                         <p className="text-sm text-[var(--color-text-muted)]">
-                            点击选择文件或拖拽到此处
+                            拖拽文件或文件夹到此处
                         </p>
-                        <input
-                            ref={inputRef}
-                            type="file"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => handleFiles(e.target.files)}
-                        />
                     </div>
+
+                    {/* 选择文件按钮 */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => inputRef.current?.click()}
+                            className="flex-1 py-3 px-4 rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors text-sm font-medium cursor-pointer"
+                        >
+                            选择文件
+                        </button>
+                        <button
+                            onClick={() => folderInputRef.current?.click()}
+                            className="flex-1 py-3 px-4 rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors text-sm font-medium cursor-pointer"
+                        >
+                            选择文件夹
+                        </button>
+                    </div>
+
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleFiles(e.target.files, false)}
+                    />
+                    <input
+                        ref={folderInputRef}
+                        type="file"
+                        webkitdirectory=""
+                        mozdirectory=""
+                        msdirectory=""
+                        directory=""
+                        className="hidden"
+                        onChange={(e) => handleFiles(e.target.files, true)}
+                    />
 
                     {/* 已选文件列表 */}
                     {selectedFiles.length > 0 && (
                         <div className="mt-4 space-y-2">
-                            <p className="text-xs text-[var(--color-text-muted)]">
-                                已选择 {selectedFiles.length} 个文件
-                            </p>
-                            {selectedFiles.map((file, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-bg)] text-sm">
-                                    <span className="truncate flex-1">{file.name}</span>
-                                    <span className="text-[var(--color-text-muted)] shrink-0">{formatSize(file.size)}</span>
-                                </div>
-                            ))}
+                            <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                                <span>已选择 {selectedFiles.length} 个文件</span>
+                                {isFolderUpload && (
+                                    <span className="px-2 py-0.5 rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)]">
+                                        文件夹模式
+                                    </span>
+                                )}
+                            </div>
+                            <div className="max-h-40 overflow-y-auto space-y-1">
+                                {selectedFiles.slice(0, 10).map((file, i) => (
+                                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-bg)] text-sm">
+                                        <span className="truncate flex-1">{file.name}</span>
+                                        <span className="text-[var(--color-text-muted)] shrink-0">{formatSize(file.size)}</span>
+                                    </div>
+                                ))}
+                                {selectedFiles.length > 10 && (
+                                    <p className="text-xs text-[var(--color-text-muted)] text-center py-1">
+                                        还有 {selectedFiles.length - 10} 个文件...
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
 
