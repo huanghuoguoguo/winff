@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WinFF - 局域网极速文件共享 | WinFF LAN Share</title>
+    <meta name="description" content="WinFF 是一款现代化的局域网文件共享工具，支持多端访问、实时预览、视频串流与极速上传下载。">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-mode">
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-symbol">W</span>
+                <span class="logo-text">WinFF</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">功能</a>
+                <a href="#setup">快速开始</a>
+                <a href="https://github.com/your-username/winff" class="btn btn-outline" id="github-link" onclick="alert('请替换为实际 GitHub 仓库地址'); return false;">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-glow"></div>
+        <div class="container">
+            <h1 class="hero-title">
+                Life's too short.<br>
+                <span class="gradient-text">WinFF it first.</span>
+            </h1>
+            <p class="hero-subtitle">
+                革命性的局域网文件共享方案。无需数据线，无需公网带宽，<br>
+                让您的所有设备在同一网络下自由流转。
+            </p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary btn-lg" id="get-started">立即开始</button>
+                <button class="btn btn-secondary btn-lg" id="view-docs">功能预览</button>
+            </div>
+            
+            <div class="hero-mockup">
+                <div class="mockup-frame">
+                    <img src="assets/winff_app_mockup.png" alt="WinFF Interface Mockup" id="hero-img">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>核心功能</h2>
+                <p>为现代开发者与多设备家庭打造</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card" id="feat-speed">
+                    <div class="icon">🚀</div>
+                    <h3>极速传输</h3>
+                    <p>利用局域网物理带宽，上传下载无需公网，大文件秒传。</p>
+                </div>
+                <div class="feature-card" id="feat-stream">
+                    <div class="icon">🎬</div>
+                    <h3>流式播放</h3>
+                    <p>内置视频串流支持，手机端直接点播 PC 上的高清视频。</p>
+                </div>
+                <div class="feature-card" id="feat-multi">
+                    <div class="icon">📱</div>
+                    <h3>全端支持</h3>
+                    <p>响应式 Web 界面，手机、平板、电脑扫码即刻互联。</p>
+                </div>
+                <div class="feature-card" id="feat-realtime">
+                    <div class="icon">⚡</div>
+                    <h3>实时更新</h3>
+                    <p>基于 Socket.IO，文件变更、在线设备状态全网实时同步。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="setup" class="setup">
+        <div class="container">
+            <div class="setup-container">
+                <div class="setup-text">
+                    <h2>快速部署</h2>
+                    <p>只需简单几步，即可在您的 Windows 或 Linux 服务器上运行。</p>
+                    <ul class="steps">
+                        <li><span>1</span> 检出代码库并安装依赖</li>
+                        <li><span>2</span> 配置共享目录 config.json</li>
+                        <li><span>3</span> 运行 <code>start.bat</code></li>
+                    </ul>
+                </div>
+                <div class="setup-code">
+                    <div class="code-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="tab">config.json</span>
+                    </div>
+                    <pre><code>{
+  "port": 3000,
+  "sharedDirs": {
+    "视频库": "D:\\Videos",
+    "项目工程": "E:\\Projects"
+  }
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 WinFF Project. Built for the speed of light.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
