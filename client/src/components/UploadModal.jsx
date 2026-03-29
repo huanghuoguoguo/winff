@@ -1,14 +1,21 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, FileUp } from 'lucide-react';
 import { uploadFiles } from '../api';
 
-export default function UploadModal({ onClose }) {
+export default function UploadModal({ onClose, initialFiles }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [result, setResult] = useState(null); // { success, message }
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
+
+    // 如果有初始文件（从全局拖拽），自动处理
+    useEffect(() => {
+        if (initialFiles && initialFiles.length > 0) {
+            handleFiles(initialFiles);
+        }
+    }, [initialFiles]);
 
     const handleFiles = (files) => {
         setSelectedFiles(Array.from(files));

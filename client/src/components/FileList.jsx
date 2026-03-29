@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Folder, FileText, Film, Image, Music, File, ChevronRight,
-    ArrowLeft, Download, Eye, LayoutGrid, List
+    ArrowLeft, Download, Eye, LayoutGrid, List, Search, X
 } from 'lucide-react';
 import { fetchFiles, getStreamUrl, getDownloadUrl } from '../api';
 
@@ -29,6 +29,8 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
     const [viewMode, setViewMode] = useState(() => {
         return localStorage.getItem('winff-view-mode') || 'list';
     });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('winff-view-mode', viewMode);
@@ -41,12 +43,23 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
             setFiles(data.items || []);
             setCurrentPath(data.currentPath || '/');
             setParentPath(data.parentPath);
+            // 切换目录时清空搜索
+            setSearchQuery('');
+            setIsSearching(false);
         } catch (err) {
             console.error('加载文件列表失败:', err);
         } finally {
             setLoading(false);
         }
     };
+
+    // 过滤文件（搜索逻辑）
+    const filteredFiles = searchQuery.trim()
+        ? files.filter(file => {
+            const query = searchQuery.toLowerCase();
+            return file.name.toLowerCase().includes(query);
+        })
+        : files;
 
     useEffect(() => {
         loadFiles();
@@ -79,10 +92,53 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
 
     return (
         <div className="flex flex-col h-full">
-            {/* 路径导航 */}
             {/* 路径导航与工具栏 */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-                <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap text-sm flex-1">
+            <div className="flex flex-col gap-2 px-4 py-3 border-b border-[var(--color-border)]">
+                <div className="flex items-center gap-2">
+                    {/* 搜索框 */}
+                    <div className="relative flex-1">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setIsSearching(e.target.value.trim() !== '');
+                            }}
+                            placeholder="搜索当前目录..."
+                            className="w-full pl-9 pr-8 py-2 text-sm rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-primary)] focus:outline-none transition-colors"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => { setSearchQuery(''); setIsSearching(false); }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
+                            >
+                                <X size={14} className="text-[var(--color-text-muted)]" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* 视图切换 */}
+                    <div className="flex items-center gap-1 bg-[var(--color-surface-hover)] p-1 rounded-lg shrink-0">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
+                            title="列表视图"
+                        >
+                            <List size={16} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
+                            title="大图标视图"
+                        >
+                            <LayoutGrid size={16} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* 路径导航 */}
+                <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap text-sm">
                     {parentPath !== null && (
                         <button
                             onClick={handleGoBack}
@@ -108,24 +164,12 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                             </button>
                         </span>
                     ))}
-                </div>
-
-                {/* 视图切换 */}
-                <div className="flex items-center gap-1 bg-[var(--color-surface-hover)] p-1 rounded-lg shrink-0 ml-2">
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
-                        title="列表视图"
-                    >
-                        <List size={16} />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
-                        title="大图标视图"
-                    >
-                        <LayoutGrid size={16} />
-                    </button>
+                    {isSearching && (
+                        <span className="flex items-center gap-1 text-[var(--color-primary)]">
+                            <ChevronRight size={14} className="shrink-0" />
+                            <span className="font-medium">搜索结果：{searchQuery}</span>
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -135,14 +179,18 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                     <div className="flex items-center justify-center h-40">
                         <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
                     </div>
-                ) : files.length === 0 ? (
+                ) : filteredFiles.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-[var(--color-text-muted)]">
                         <Folder size={48} className="mb-2 opacity-30" />
-                        <p>此目录为空</p>
+                        <p>
+                            {searchQuery.trim()
+                                ? `没有找到匹配 "${searchQuery}" 的文件`
+                                : (files.length === 0 ? '此目录为空' : '没有权限访问此目录')}
+                        </p>
                     </div>
                 ) : (
                     <div className={viewMode === 'list' ? "divide-y divide-[var(--color-border)]" : "p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"}>
-                        {files.map((item, index) => {
+                        {filteredFiles.map((item, index) => {
                             const IconComp = item.isDirectory
                                 ? Folder
                                 : (categoryIcons[item.category] || File);
