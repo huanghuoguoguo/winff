@@ -27,27 +27,51 @@ export function getDownloadUrl(filePath) {
  * 上传文件
  * @param {FileList|File[]} files
  * @param {string} targetDir - 目标子目录
- * @param {function} onProgress - 进度回调 (0-100)
+ * @param {function} onProgress - 进度回调 { percent, loaded, total, speed }
+ * @returns {{ promise: Promise, abort: function }} - 可取消的上传任务
  */
 export function uploadFiles(files, targetDir = '', onProgress) {
-    return new Promise((resolve, reject) => {
-        const formData = new FormData();
-        for (const file of files) {
-            formData.append('files', file);
+    let startTime = null;
+    let lastLoaded = 0;
+    let speedHistory = [];
+
+    const formData = new FormData();
+    for (const file of files) {
+        formData.append('files', file);
+    }
+    if (targetDir) {
+        formData.append('targetDir', targetDir);
+    }
+
+    const xhr = new XMLHttpRequest();
+
+    // 计算上传速度
+    const calculateSpeed = (loaded, timestamp) => {
+        if (!startTime) {
+            startTime = timestamp;
+            return 0;
         }
-        if (targetDir) {
-            formData.append('targetDir', targetDir);
+        const elapsed = (timestamp - startTime) / 1000; // 秒
+        if (elapsed < 0.5) return 0;
+
+        const instantSpeed = (loaded - lastLoaded) / ((timestamp - lastLoaded) / 1000 || 1);
+        speedHistory.push(instantSpeed);
+        if (speedHistory.length > 5) speedHistory.shift();
+
+        const avgSpeed = speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length;
+        lastLoaded = loaded;
+        return avgSpeed;
+    };
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            const speed = calculateSpeed(e.loaded, Date.now());
+            onProgress({ percent, loaded: e.loaded, total: e.total, speed });
         }
+    };
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${BASE}/api/upload`);
-
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable && onProgress) {
-                onProgress(Math.round((e.loaded / e.total) * 100));
-            }
-        };
-
+    const promise = new Promise((resolve, reject) => {
         xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
                 resolve(JSON.parse(xhr.responseText));
@@ -57,8 +81,14 @@ export function uploadFiles(files, targetDir = '', onProgress) {
         };
 
         xhr.onerror = () => reject(new Error('网络错误'));
-        xhr.send(formData);
     });
+
+    xhr.send(formData);
+
+    return {
+        promise,
+        abort: () => xhr.abort()
+    };
 }
 
 /**

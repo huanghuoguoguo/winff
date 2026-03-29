@@ -6,9 +6,29 @@ export default function UploadModal({ onClose, initialFiles }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [result, setResult] = useState(null); // { success, message }
+    const [uploadSpeed, setUploadSpeed] = useState(0);
+    const [remainingTime, setRemainingTime] = useState(null);
+    const [result, setResult] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
+    const uploadTaskRef = useRef(null);
+
+    // 格式化速度
+    const formatSpeed = (bytesPerSecond) => {
+        if (!bytesPerSecond || bytesPerSecond <= 0) return '--';
+        if (bytesPerSecond < 1024) return bytesPerSecond.toFixed(0) + ' B/s';
+        if (bytesPerSecond < 1024 * 1024) return (bytesPerSecond / 1024).toFixed(1) + ' KB/s';
+        return (bytesPerSecond / (1024 * 1024)).toFixed(1) + ' MB/s';
+    };
+
+    // 格式化时间
+    const formatTime = (seconds) => {
+        if (!seconds || seconds <= 0) return '--';
+        if (seconds < 60) return Math.round(seconds) + ' 秒';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return `${mins}分${secs}秒`;
+    };
 
     // 如果有初始文件（从全局拖拽），自动处理
     useEffect(() => {
@@ -16,6 +36,16 @@ export default function UploadModal({ onClose, initialFiles }) {
             handleFiles(initialFiles);
         }
     }, [initialFiles]);
+
+    // 根据进度和速度计算剩余时间
+    useEffect(() => {
+        if (uploading && progress > 0 && uploadSpeed > 0) {
+            const remaining = ((100 - progress) / 100) * (progress / (uploadSpeed / 1));
+            setRemainingTime(remaining);
+        } else {
+            setRemainingTime(null);
+        }
+    }, [progress, uploadSpeed, uploading]);
 
     const handleFiles = (files) => {
         setSelectedFiles(Array.from(files));
@@ -34,10 +64,18 @@ export default function UploadModal({ onClose, initialFiles }) {
         if (selectedFiles.length === 0) return;
         setUploading(true);
         setProgress(0);
+        setUploadSpeed(0);
+        setRemainingTime(null);
         setResult(null);
 
         try {
-            const res = await uploadFiles(selectedFiles, '', (p) => setProgress(p));
+            const task = uploadFiles(selectedFiles, '', (data) => {
+                setProgress(data.percent);
+                setUploadSpeed(data.speed);
+            });
+            uploadTaskRef.current = task;
+
+            const res = await task.promise;
             setResult({ success: true, message: res.message });
             setSelectedFiles([]);
             // 通知文件列表刷新
@@ -45,9 +83,21 @@ export default function UploadModal({ onClose, initialFiles }) {
                 window.__winff_refreshFiles();
             }
         } catch (err) {
-            setResult({ success: false, message: err.message || '上传失败' });
+            if (err.name !== 'AbortError') {
+                setResult({ success: false, message: err.message || '上传失败' });
+            }
         } finally {
             setUploading(false);
+            uploadTaskRef.current = null;
+        }
+    };
+
+    const handleCancel = () => {
+        if (uploadTaskRef.current) {
+            uploadTaskRef.current.abort();
+            setUploading(false);
+            setResult({ success: false, message: '已取消上传' });
+            uploadTaskRef.current = null;
         }
     };
 
@@ -122,8 +172,11 @@ export default function UploadModal({ onClose, initialFiles }) {
                     {uploading && (
                         <div className="mt-4">
                             <div className="flex justify-between text-xs text-[var(--color-text-muted)] mb-1">
-                                <span>上传中...</span>
-                                <span>{progress}%</span>
+                                <span>上传中... {progress}%</span>
+                                <span className="flex items-center gap-2">
+                                    <span>{formatSpeed(uploadSpeed)}</span>
+                                    {remainingTime && <span>剩余 {formatTime(remainingTime)}</span>}
+                                </span>
                             </div>
                             <div className="w-full h-2 bg-[var(--color-bg)] rounded-full overflow-hidden">
                                 <div
@@ -146,19 +199,28 @@ export default function UploadModal({ onClose, initialFiles }) {
 
                 {/* 底部按钮 */}
                 <div className="px-5 py-4 border-t border-[var(--color-border)]">
-                    <button
-                        onClick={handleUpload}
-                        disabled={selectedFiles.length === 0 || uploading}
-                        className={`
-              w-full py-3 rounded-xl font-medium text-sm transition-all
-              ${selectedFiles.length > 0 && !uploading
-                                ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white cursor-pointer shadow-lg shadow-[var(--color-primary)]/25'
-                                : 'bg-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed'
-                            }
-            `}
-                    >
-                        {uploading ? '上传中...' : `上传 ${selectedFiles.length > 0 ? `(${selectedFiles.length} 个文件)` : ''}`}
-                    </button>
+                    {uploading ? (
+                        <button
+                            onClick={handleCancel}
+                            className="w-full py-3 rounded-xl font-medium text-sm transition-all bg-[var(--color-danger)] hover:bg-[var(--color-danger-dark)] text-white cursor-pointer shadow-lg shadow-[var(--color-danger)]/25"
+                        >
+                            取消上传
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleUpload}
+                            disabled={selectedFiles.length === 0 || uploading}
+                            className={`
+                w-full py-3 rounded-xl font-medium text-sm transition-all
+                ${selectedFiles.length > 0 && !uploading
+                                    ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white cursor-pointer shadow-lg shadow-[var(--color-primary)]/25'
+                                    : 'bg-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed'
+                                }
+              `}
+                        >
+                            {uploading ? '上传中...' : `上传 ${selectedFiles.length > 0 ? `(${selectedFiles.length} 个文件)` : ''}`}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

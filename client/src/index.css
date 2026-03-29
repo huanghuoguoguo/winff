@@ -21,6 +21,8 @@
   --color-success-text: #34d399;
   --color-danger-bg: rgba(239, 68, 68, 0.1);
   --color-danger-text: #f87171;
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
   --scrollbar-thumb: #2a2a4a;
   --scrollbar-thumb-hover: #8888aa;
 }
@@ -45,6 +47,8 @@
   --color-success-text: #059669;
   --color-danger-bg: rgba(239, 68, 68, 0.08);
   --color-danger-text: #dc2626;
+  --color-danger: #ef4444;
+  --color-danger-dark: #b91c1c;
   --scrollbar-thumb: #d1d5db;
   --scrollbar-thumb-hover: #9ca3af;
 }
