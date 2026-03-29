@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Folder, FileText, Film, Image, Music, File, ChevronRight,
     ArrowLeft, Download, Eye, LayoutGrid, List, Search, X
@@ -31,6 +31,10 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
     });
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    // 分页状态
+    const [visibleCount, setVisibleCount] = useState(100);
+    const [hasMore, setHasMore] = useState(false);
+    const listContainerRef = useRef(null);
 
     useEffect(() => {
         localStorage.setItem('winff-view-mode', viewMode);
@@ -61,6 +65,40 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
         })
         : files;
 
+    // 分页：根据可见数量截取文件列表
+    const visibleFiles = filteredFiles.slice(0, visibleCount);
+    const hasMoreFiles = visibleCount < filteredFiles.length;
+
+    // 切换目录时重置分页
+    useEffect(() => {
+        setVisibleCount(100);
+    }, [currentPath, searchQuery, files.length]);
+
+    // 更新 hasMoreFiles 状态
+    useEffect(() => {
+        setHasMore(visibleCount < filteredFiles.length);
+    }, [visibleCount, filteredFiles.length]);
+
+    // 监听滚动加载更多
+    useEffect(() => {
+        const container = listContainerRef.current;
+        if (!container || !hasMoreFiles) return;
+
+        const handleScroll = () => {
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+
+            // 距离底部 100px 时加载更多
+            if (scrollHeight - scrollTop - clientHeight < 100) {
+                setVisibleCount(prev => Math.min(prev + 100, filteredFiles.length));
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [hasMoreFiles, filteredFiles.length]);
+
     useEffect(() => {
         loadFiles();
     }, []);
@@ -69,7 +107,7 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
     useEffect(() => {
         window.__winff_refreshFiles = () => loadFiles(currentPath === '/' ? '' : currentPath);
         return () => { delete window.__winff_refreshFiles; };
-    }, [currentPath]);
+    }, [currentPath, searchQuery]);
 
     const handleItemClick = (item) => {
         if (item.isDirectory) {
@@ -174,7 +212,7 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
             </div>
 
             {/* 文件列表 */}
-            <div className="flex-1 overflow-y-auto">
+            <div ref={listContainerRef} className="flex-1 overflow-y-auto">
                 {loading ? (
                     <div className="flex items-center justify-center h-40">
                         <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
@@ -190,7 +228,7 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                     </div>
                 ) : (
                     <div className={viewMode === 'list' ? "divide-y divide-[var(--color-border)]" : "p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"}>
-                        {filteredFiles.map((item, index) => {
+                        {visibleFiles.map((item, index) => {
                             const IconComp = item.isDirectory
                                 ? Folder
                                 : (categoryIcons[item.category] || File);
@@ -311,6 +349,14 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* 加载更多提示 */}
+                {hasMoreFiles && (
+                    <div className="py-4 text-center text-sm text-[var(--color-text-muted)]">
+                        <p>已显示 {visibleFiles.length} / {filteredFiles.length} 个文件</p>
+                        <p className="mt-1">滚动加载更多...</p>
                     </div>
                 )}
             </div>
