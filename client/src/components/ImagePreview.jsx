@@ -39,7 +39,7 @@ export default function ImagePreview({ src, name, onClose }) {
             </div>
 
             {/* 图片区域 */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
                 <img
                     ref={imgRef}
                     src={src}

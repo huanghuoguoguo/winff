@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
     Folder, FileText, Film, Image, Music, File, ChevronRight,
     ArrowLeft, Download, Eye, LayoutGrid, List, Search, X,
-    Check, CheckSquare, Square, Trash2, Archive
+    Check, CheckSquare, Square, Trash2, Archive,
+    ArrowUpDown, ArrowUpAZ, ArrowDownAZ, ArrowDownWideNarrow, ArrowUpWideNarrow, Clock
 } from 'lucide-react';
 import { fetchFiles, getStreamUrl, getDownloadUrl } from '../api';
 
@@ -22,7 +23,7 @@ const categoryColors = {
     other: 'text-slate-400',
 };
 
-export default function FileList({ onPreviewImage, onPlayVideo }) {
+export default function FileList({ onPreviewImage, onPlayVideo, onPathChange }) {
     const [currentPath, setCurrentPath] = useState('');
     const [parentPath, setParentPath] = useState(null);
     const [files, setFiles] = useState([]);
@@ -30,8 +31,15 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
     const [viewMode, setViewMode] = useState(() => {
         return localStorage.getItem('winff-view-mode') || 'list';
     });
+    const [sortBy, setSortBy] = useState(() => {
+        return localStorage.getItem('winff-sort-by') || 'name';
+    });
+    const [sortOrder, setSortOrder] = useState(() => {
+        return localStorage.getItem('winff-sort-order') || 'asc';
+    });
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [showSortMenu, setShowSortMenu] = useState(false);
     // 分页状态
     const [visibleCount, setVisibleCount] = useState(100);
     const [hasMore, setHasMore] = useState(false);
@@ -44,12 +52,22 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
         localStorage.setItem('winff-view-mode', viewMode);
     }, [viewMode]);
 
+    useEffect(() => {
+        localStorage.setItem('winff-sort-by', sortBy);
+    }, [sortBy]);
+
+    useEffect(() => {
+        localStorage.setItem('winff-sort-order', sortOrder);
+    }, [sortOrder]);
+
     const loadFiles = async (dirPath = '') => {
         setLoading(true);
         try {
             const data = await fetchFiles(dirPath);
             setFiles(data.items || []);
             setCurrentPath(data.currentPath || '/');
+            // 通知父组件当前路径
+            if (onPathChange) onPathChange(data.currentPath || '/');
             setParentPath(data.parentPath);
             // 切换目录时清空搜索
             setSearchQuery('');
@@ -69,19 +87,49 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
         })
         : files;
 
+    // 排序文件（使用 useMemo 缓存结果）
+    const sortedFiles = useMemo(() => {
+        return [...filteredFiles].sort((a, b) => {
+            // 目录始终排在文件前面
+            if (a.isDirectory !== b.isDirectory) {
+                return a.isDirectory ? -1 : 1;
+            }
+
+            let comparison = 0;
+            switch (sortBy) {
+                case 'name':
+                    comparison = a.name.localeCompare(b.name, 'zh-CN');
+                    break;
+                case 'size':
+                    comparison = (a.size || 0) - (b.size || 0);
+                    break;
+                case 'date':
+                    comparison = (a.date || 0) - (b.date || 0);
+                    break;
+                case 'type':
+                    comparison = (a.category || '').localeCompare(b.category || '');
+                    break;
+                default:
+                    comparison = a.name.localeCompare(b.name, 'zh-CN');
+            }
+
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
+    }, [filteredFiles, sortBy, sortOrder]);
+
     // 分页：根据可见数量截取文件列表
-    const visibleFiles = filteredFiles.slice(0, visibleCount);
-    const hasMoreFiles = visibleCount < filteredFiles.length;
+    const visibleFiles = sortedFiles.slice(0, visibleCount);
+    const hasMoreFiles = visibleCount < sortedFiles.length;
 
     // 切换目录时重置分页
     useEffect(() => {
         setVisibleCount(100);
-    }, [currentPath, searchQuery, files.length]);
+    }, [currentPath, searchQuery, sortedFiles.length]);
 
     // 更新 hasMoreFiles 状态
     useEffect(() => {
-        setHasMore(visibleCount < filteredFiles.length);
-    }, [visibleCount, filteredFiles.length]);
+        setHasMore(visibleCount < sortedFiles.length);
+    }, [visibleCount, sortedFiles.length]);
 
     // 监听滚动加载更多
     useEffect(() => {
@@ -107,6 +155,7 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
     useEffect(() => {
         setSelectedFiles(new Set());
         setSelectMode(false);
+        setShowSortMenu(false);
     }, [currentPath]);
 
     // 切换选择模式
@@ -251,6 +300,79 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                         </div>
                     ) : (
                         <div className="flex items-center gap-1 bg-[var(--color-surface-hover)] p-1 rounded-lg shrink-0">
+                            {/* 排序按钮 */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowSortMenu(!showSortMenu)}
+                                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${showSortMenu ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
+                                    title="排序"
+                                >
+                                    <ArrowUpDown size={16} />
+                                </button>
+                                {showSortMenu && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setShowSortMenu(false)}
+                                        />
+                                        <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl overflow-hidden">
+                                            <div className="px-3 py-2 border-b border-[var(--color-border)] text-xs font-medium text-[var(--color-text-muted)]">
+                                                排序方式
+                                            </div>
+                                            <button
+                                                onClick={() => { setSortBy('name'); setShowSortMenu(false); }}
+                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer ${sortBy === 'name' ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'text-[var(--color-text)]'}`}
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <ArrowUpAZ size={16} />
+                                                    名称
+                                                </span>
+                                                {sortBy === 'name' && (sortOrder === 'asc' ? <ArrowUpAZ size={14} /> : <ArrowDownAZ size={14} />)}
+                                            </button>
+                                            <button
+                                                onClick={() => { setSortBy('size'); setShowSortMenu(false); }}
+                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer ${sortBy === 'size' ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'text-[var(--color-text)]'}`}
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <ArrowUpWideNarrow size={16} />
+                                                    大小
+                                                </span>
+                                                {sortBy === 'size' && (sortOrder === 'asc' ? <ArrowUpWideNarrow size={14} /> : <ArrowDownWideNarrow size={14} />)}
+                                            </button>
+                                            <button
+                                                onClick={() => { setSortBy('type'); setShowSortMenu(false); }}
+                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer ${sortBy === 'type' ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'text-[var(--color-text)]'}`}
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <ArrowUpDown size={16} />
+                                                    类型
+                                                </span>
+                                                {sortBy === 'type' && (sortOrder === 'asc' ? <ArrowUpDown size={14} /> : <ArrowUpDown size={14} />)}
+                                            </button>
+                                            <button
+                                                onClick={() => { setSortBy('date'); setShowSortMenu(false); }}
+                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer ${sortBy === 'date' ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'text-[var(--color-text)]'}`}
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <Clock size={16} />
+                                                    修改时间
+                                                </span>
+                                                {sortBy === 'date' && (sortOrder === 'asc' ? <ArrowUpDown size={14} /> : <ArrowUpDown size={14} />)}
+                                            </button>
+                                            <div className="px-3 py-2 border-t border-[var(--color-border)]">
+                                                <button
+                                                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-md bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)]/80 transition-colors cursor-pointer text-[var(--color-text)]"
+                                                >
+                                                    {sortOrder === 'asc' ? <ArrowUpAZ size={14} /> : <ArrowDownAZ size={14} />}
+                                                    {sortOrder === 'asc' ? '升序' : '降序'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
                             <button
                                 onClick={() => setViewMode('list')}
                                 className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-[var(--color-bg)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent'}`}
@@ -342,8 +464,7 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                                 return (
                                     <div
                                         key={item.path}
-                                        className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer group animate-fade-in relative text-center ${isSelected ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:shadow-md'}`}
-                                        style={{ animationDelay: `${index * 20}ms` }}
+                                        className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer group relative text-center ${isSelected ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:shadow-md'}`}
                                         onClick={() => {
                                             if (selectMode) {
                                                 toggleFileSelect(item.path);
@@ -411,8 +532,7 @@ export default function FileList({ onPreviewImage, onPlayVideo }) {
                             return (
                                 <div
                                     key={item.path}
-                                    className={`flex items-center gap-3 px-4 py-3 transition-all cursor-pointer animate-fade-in group ${isSelected ? 'bg-[var(--color-primary)]/10' : 'hover:bg-[var(--color-surface-hover)]'}`}
-                                    style={{ animationDelay: `${index * 30}ms` }}
+                                    className={`flex items-center gap-3 px-4 py-3 transition-all cursor-pointer group ${isSelected ? 'bg-[var(--color-primary)]/10' : 'hover:bg-[var(--color-surface-hover)]'}`}
                                     onClick={() => {
                                         if (selectMode) {
                                             toggleFileSelect(item.path);

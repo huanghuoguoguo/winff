@@ -81,7 +81,7 @@ if (fs.existsSync(publicDir)) {
 // ========== API 路由 ==========
 app.use('/api', createApiRouter(SHARED_DIRS));
 app.use('/api/stream', createStreamRouter(SHARED_DIRS));
-app.use('/api/upload', createUploadRouter(UPLOAD_DIR, io));
+app.use('/api/upload', createUploadRouter(UPLOAD_DIR, SHARED_DIRS, io));
 
 // 服务器信息接口
 app.get('/api/info', (req, res) => {

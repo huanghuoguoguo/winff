@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, FileUp } from 'lucide-react';
 import { uploadFiles } from '../api';
 
-export default function UploadModal({ onClose, initialFiles }) {
+export default function UploadModal({ onClose, initialFiles, currentPath = '' }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -96,7 +96,7 @@ export default function UploadModal({ onClose, initialFiles }) {
                 let totalProgress = 0;
 
                 for (const [dir, files] of dirMap) {
-                    const task = uploadFiles(files, dir, (data) => {
+                    const task = uploadFiles(files, currentPath ? (currentPath === '/' ? dir : currentPath + '/' + dir) : dir, (data) => {
                         // 计算总体进度
                         const dirProgress = data.percent / 100;
                         const weight = 1 / totalDirs;
@@ -111,7 +111,7 @@ export default function UploadModal({ onClose, initialFiles }) {
 
                 setResult({ success: true, message: `成功上传 ${completedDirs} 个目录` });
             } else {
-                const task = uploadFiles(selectedFiles, '', (data) => {
+                const task = uploadFiles(selectedFiles, currentPath, (data) => {
                     setProgress(data.percent);
                     setUploadSpeed(data.speed);
                 });

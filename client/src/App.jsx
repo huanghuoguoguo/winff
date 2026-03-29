@@ -18,6 +18,7 @@ export default function App() {
   const [connected, setConnected] = useState(socket.connected);
   const [dragOver, setDragOver] = useState(false);
   const dropZoneRef = useRef(null);
+  const [currentPath, setCurrentPath] = useState('');
 
   useEffect(() => {
     socket.on('connect', () => setConnected(true));
@@ -153,6 +154,8 @@ export default function App() {
         {/* 文件浏览区 */}
         <main className="flex-1 min-w-0">
           <FileList
+            currentPath={currentPath}
+            onPathChange={setCurrentPath}
             onPreviewImage={(src, name) => setPreviewImage({ src, name })}
             onPlayVideo={(src, name) => setPlayVideo({ src, name })}
           />
@@ -160,7 +163,7 @@ export default function App() {
       </div>
 
       {/* ===== 模态层 ===== */}
-      {showUpload && <UploadModal onClose={() => { setShowUpload(false); setDragFiles(null); }} initialFiles={dragFiles} />}
+      {showUpload && <UploadModal onClose={() => { setShowUpload(false); setDragFiles(null); }} initialFiles={dragFiles} currentPath={currentPath} />}
       {previewImage && (
         <ImagePreview
           src={previewImage.src}
