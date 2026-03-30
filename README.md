@@ -33,7 +33,23 @@
 
 ## 🚀 快速开始
 
-### Windows 用户（推荐）
+### 一键安装（推荐）
+
+**Linux / macOS:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | sudo bash
+```
+
+**Windows PowerShell:**
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/your-user/winff/main/install.ps1 | iex
+```
+
+> 注意：请将 `your-user` 替换为你的实际 GitHub 用户名
+
+### Windows 本地启动
 
 **一行命令启动：**
 
