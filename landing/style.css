@@ -389,6 +389,31 @@ pre {
   overflow-x: auto;
 }
 
+/* Install Commands Section */
+.install-commands {
+  margin: 2rem 0;
+}
+
+.install-commands h3 {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  margin: 1.5rem 0 0.75rem;
+  color: var(--text-primary);
+}
+
+.install-commands pre {
+  background: #0a0a0a;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.install-commands code {
+  color: var(--accent-primary);
+}
+
 /* Footer */
 .footer {
   padding: 4rem 0;
