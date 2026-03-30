@@ -153,7 +153,15 @@ install_deps() {
     # 安装 server 依赖
     if [ -d "server" ]; then
         cd server
-        npm install --production 2>&1 | tail -3
+        npm install 2>&1 | tail -3
+        cd ..
+    fi
+
+    # 构建 TypeScript 服务端
+    if [ -f "server/tsconfig.json" ] && [ -d "server/src" ]; then
+        info "编译 TypeScript..."
+        cd server
+        npm run build 2>&1 | tail -5
         cd ..
     fi
 
@@ -210,7 +218,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=$WINFF_INSTALL_DIR/server
-ExecStart=/usr/bin/node src/index.js
+ExecStart=/usr/bin/node dist/index.js
 Restart=on-failure
 RestartSec=5
 Environment=PORT=$WINFF_PORT
