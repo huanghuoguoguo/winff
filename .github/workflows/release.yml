@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,16 +24,22 @@ jobs:
       - name: Install dependencies
         run: |
           cd client && npm install
-          cd ../server && npm install --production
+          cd ../server && npm install
 
       - name: Build client
         run: |
           cd client
           npm run build
 
+      - name: Build server
+        run: |
+          cd server
+          npm run build
+
       - name: Test build
         run: |
           ls -la server/public/
+          ls -la server/dist/
 
       # Linux 发布包
       - name: Create Linux release package
