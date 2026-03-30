@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # WinFF 一键安装脚本
-# 用法：curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | bash
-# 或：curl -fsSL https://example.com/install.sh | bash
+# 用法：curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | sudo bash
+#
+# 环境变量:
+#   WINFF_VERSION      - 版本号，默认 latest
+#   WINFF_INSTALL_DIR  - 安装目录，默认 /opt/winff
+#   WINFF_DATA_DIR     - 数据目录，默认 /root/winff-data
+#   WINFF_PORT         - 端口，默认 3000
 
 set -e
 
@@ -99,6 +104,7 @@ download_winff() {
 
     cd "$WINFF_INSTALL_DIR"
 
+    # 尝试从 Releases 下载，失败则使用源码
     if [ "$WINFF_VERSION" = "latest" ]; then
         DOWNLOAD_URL="https://github.com/your-user/winff/releases/latest/download/winff-linux.tar.gz"
     else
@@ -109,16 +115,32 @@ download_winff() {
         success "下载完成"
         tar -xzf winff.tar.gz
         rm -f winff.tar.gz
-    else
-        warn "下载失败，尝试使用源码安装..."
-        # 回退到源码安装
-        curl -fsSL "https://github.com/your-user/winff/archive/refs/tags/${WINFF_VERSION}.tar.gz" -o source.tar.gz 2>/dev/null || \
-        curl -fsSL "https://github.com/your-user/winff/archive/refs/heads/main.tar.gz" -o source.tar.gz
+        return
+    fi
 
-        tar -xzf source.tar.gz
-        rm -f source.tar.gz
-        mv winff-*/* . 2>/dev/null || mv *-*/* . 2>/dev/null || true
-        rm -rf winff-*
+    warn "Releases 下载失败，使用源码安装..."
+    # 回退到源码安装
+    if [ "$WINFF_VERSION" = "latest" ]; then
+        SOURCE_URL="https://github.com/your-user/winff/archive/refs/heads/main.tar.gz"
+    else
+        SOURCE_URL="https://github.com/your-user/winff/archive/refs/tags/${WINFF_VERSION}.tar.gz"
+    fi
+
+    if ! curl -fsSL "$SOURCE_URL" -o source.tar.gz 2>/dev/null; then
+        error "源码下载失败"
+        exit 1
+    fi
+
+    tar -xzf source.tar.gz
+    rm -f source.tar.gz
+
+    # 移动文件
+    local extracted_dir
+    extracted_dir=$(ls -d */ | head -1)
+    if [ -n "$extracted_dir" ]; then
+        mv "${extracted_dir}"/* . 2>/dev/null || true
+        mv "${extracted_dir}"/.[!.]* . 2>/dev/null || true
+        rm -rf "$extracted_dir"
     fi
 }
 

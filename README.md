@@ -47,11 +47,20 @@ curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | s
 iwr -useb https://raw.githubusercontent.com/your-user/winff/main/install.ps1 | iex
 ```
 
-> 注意：请将 `your-user` 替换为你的实际 GitHub 用户名
+> **注意**：请将 `your-user` 替换为你的 GitHub 用户名，或者使用你的代码托管平台的原始文件 URL
 
-### Windows 本地启动
+**自定义安装参数：**
 
-**一行命令启动：**
+```bash
+# 自定义端口和数据目录
+export WINFF_PORT=8080
+export WINFF_DATA_DIR=/data/winff
+curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | sudo bash
+```
+
+### Windows 本地启动（开发用）
+
+**双击运行或命令行：**
 
 ```bash
 start.bat
@@ -66,7 +75,7 @@ start.bat
 
 > **注意**：首次启动时如果弹出 Windows 防火墙提示，请点击**允许通过**
 
-### 手动启动
+### 手动启动（开发用）
 
 ```bash
 # 1. 安装依赖
