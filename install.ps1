@@ -1,6 +1,5 @@
 # WinFF 一键安装脚本 (Windows PowerShell)
-# 用法：iwr -useb https://raw.githubusercontent.com/your-user/winff/main/install.ps1 | iex
-# 或：iwr -useb https://example.com/install.ps1 | iex
+# 用法：iwr -useb https://raw.githubusercontent.com/huanghuoguoguo/winff/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
@@ -60,13 +59,13 @@ Set-Location $WinFFInstallDir
 try {
     if ($WinFFVersion -eq "latest") {
         # 获取最新版本
-        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/your-user/winff/releases/latest" -UseBasicParsing
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/huanghuoguoguo/winff/releases/latest" -UseBasicParsing
         $downloadUrl = $release.assets | Where-Object { $_.name -eq "winff-windows.zip" } | Select-Object -ExpandProperty browser_download_url
         if (-not $downloadUrl) {
             throw "未找到 Windows 安装包"
         }
     } else {
-        $downloadUrl = "https://github.com/your-user/winff/releases/download/$WinFFVersion/winff-windows.zip"
+        $downloadUrl = "https://github.com/huanghuoguoguo/winff/releases/download/$WinFFVersion/winff-windows.zip"
     }
 
     Write-Info "下载地址：$downloadUrl"
@@ -86,7 +85,7 @@ try {
 } catch {
     Write-Warn "下载失败，尝试使用源码..."
     try {
-        Invoke-WebRequest -Uri "https://github.com/your-user/winff/archive/refs/heads/main.zip" -OutFile "source.zip" -UseBasicParsing
+        Invoke-WebRequest -Uri "https://github.com/huanghuoguoguo/winff/archive/refs/heads/main.zip" -OutFile "source.zip" -UseBasicParsing
         Expand-Archive -Path "source.zip" -DestinationPath "." -Force
         Remove-Item "source.zip" -Force
 

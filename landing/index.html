@@ -85,11 +85,17 @@
             <div class="setup-container">
                 <div class="setup-text">
                     <h2>快速部署</h2>
-                    <p>只需简单几步，即可在您的 Windows 或 Linux 服务器上运行。</p>
+                    <p>只需简单两步，即可在您的 Windows 或 Linux 服务器上运行。</p>
+                    <div class="install-commands">
+                        <h3>Linux / macOS</h3>
+                        <pre><code>curl -fsSL https://raw.githubusercontent.com/huanghuoguoguo/winff/main/install.sh | sudo bash</code></pre>
+                        <h3>Windows PowerShell</h3>
+                        <pre><code>iwr -useb https://raw.githubusercontent.com/huanghuoguoguo/winff/main/install.ps1 | iex</code></pre>
+                    </div>
+                    <h3>本地开发模式</h3>
                     <ul class="steps">
-                        <li><span>1</span> 检出代码库并安装依赖</li>
-                        <li><span>2</span> 配置共享目录 config.json</li>
-                        <li><span>3</span> 运行 <code>start.bat</code></li>
+                        <li><span>1</span> 克隆代码库</li>
+                        <li><span>2</span> 运行 <code>start.bat</code></li>
                     </ul>
                 </div>
                 <div class="setup-code">

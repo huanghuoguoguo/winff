@@ -38,13 +38,13 @@
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/huanghuoguoguo/winff/main/install.sh | sudo bash
 ```
 
 **Windows PowerShell:**
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/your-user/winff/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/huanghuoguoguo/winff/main/install.ps1 | iex
 ```
 
 > **注意**：请将 `your-user` 替换为你的 GitHub 用户名，或者使用你的代码托管平台的原始文件 URL

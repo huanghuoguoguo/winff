@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # WinFF 一键安装脚本
-# 用法：curl -fsSL https://raw.githubusercontent.com/your-user/winff/main/install.sh | sudo bash
+# 用法：curl -fsSL https://raw.githubusercontent.com/huanghuoguoguo/winff/main/install.sh | sudo bash
 #
 # 环境变量:
 #   WINFF_VERSION      - 版本号，默认 latest
@@ -106,9 +106,9 @@ download_winff() {
 
     # 尝试从 Releases 下载，失败则使用源码
     if [ "$WINFF_VERSION" = "latest" ]; then
-        DOWNLOAD_URL="https://github.com/your-user/winff/releases/latest/download/winff-linux.tar.gz"
+        DOWNLOAD_URL="https://github.com/huanghuoguoguo/winff/releases/latest/download/winff-linux.tar.gz"
     else
-        DOWNLOAD_URL="https://github.com/your-user/winff/releases/download/${WINFF_VERSION}/winff-linux.tar.gz"
+        DOWNLOAD_URL="https://github.com/huanghuoguoguo/winff/releases/download/${WINFF_VERSION}/winff-linux.tar.gz"
     fi
 
     if curl -fsSL "$DOWNLOAD_URL" -o winff.tar.gz 2>/dev/null; then
@@ -121,9 +121,9 @@ download_winff() {
     warn "Releases 下载失败，使用源码安装..."
     # 回退到源码安装
     if [ "$WINFF_VERSION" = "latest" ]; then
-        SOURCE_URL="https://github.com/your-user/winff/archive/refs/heads/main.tar.gz"
+        SOURCE_URL="https://github.com/huanghuoguoguo/winff/archive/refs/heads/main.tar.gz"
     else
-        SOURCE_URL="https://github.com/your-user/winff/archive/refs/tags/${WINFF_VERSION}.tar.gz"
+        SOURCE_URL="https://github.com/huanghuoguoguo/winff/archive/refs/tags/${WINFF_VERSION}.tar.gz"
     fi
 
     if ! curl -fsSL "$SOURCE_URL" -o source.tar.gz 2>/dev/null; then
