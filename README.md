@@ -33,32 +33,34 @@
 
 ## 🚀 快速开始
 
-### Windows 用户
+### Windows 用户（推荐）
 
-双击运行 `start.bat`：
+**一行命令启动：**
 
 ```bash
 start.bat
 ```
 
-服务启动后会显示二维码，手机扫描即可访问。
+首次运行时会自动：
+- ✅ 检查并安装 Node.js 依赖
+- ✅ 构建前端页面
+- ✅ 启动服务
+
+服务启动后显示二维码，手机扫描即可访问。
+
+> **注意**：首次启动时如果弹出 Windows 防火墙提示，请点击**允许通过**
 
 ### 手动启动
 
-**1. 启动服务端**
-
 ```bash
-cd server
+# 1. 安装依赖
 npm install
-npm start
-```
 
-**2. 构建前端（可选，生产环境需要）**
+# 2. 构建前端
+cd client && npm run build
 
-```bash
-cd client
-npm install
-npm run build
+# 3. 启动服务
+cd ../server && npm start
 ```
 
 ## 📖 使用说明
